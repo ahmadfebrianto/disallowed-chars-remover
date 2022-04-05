@@ -3,9 +3,10 @@
 import os
 import subprocess
 import sys
+import argparse
 
 
-disallowed_chars = list(' \'";:/\,<>?|{}!@#$%^&*=+`')
+disallowed_chars = list(' -\'";:/\,<>?|{}!@#$%^&*=+`')
 
 
 def is_hidden(item_path):
@@ -44,7 +45,6 @@ def rename(names):
     '''
     Apply filename changes to the system.
     '''
-
     old_name = names[0]
     new_name = names[1]
     capture = subprocess.run(['mv', old_name, new_name],
@@ -57,12 +57,11 @@ def traverse(root_path):
     '''
     Traverse each directory recursively.
     '''
-
     root_path_items = os.listdir(root_path)
 
     if len(root_path_items) != 0:
-        item_paths = list(
-            map(lambda item: os.path.join(root_path, item), root_path_items))
+        item_paths = [os.path.join(root_path, item)
+                      for item in root_path_items]
 
         for item_path in item_paths:
             if os.path.isdir(item_path) and not is_hidden(item_path):
@@ -78,11 +77,9 @@ def traverse(root_path):
                         print(f'\tFrom\t= {result[0]}')
                         print(f'\tTo\t= {result[-1]}')
 
-                os.chdir(item_path)
                 traverse(item_path)
 
             elif os.path.isfile(item_path) and not is_hidden(item_path):
-
                 result = check_and_replace(item_path)
                 if result[-1] != '':
                     capture = rename(result)
@@ -92,20 +89,24 @@ def traverse(root_path):
                         print(f'\tFrom\t= {result[0]}')
                         print(f'\tTo\t= {result[-1]}')
 
+    else:
+        print(f'[*] No items in {root_path}')
+
 
 def main():
-    try:
-        if len(sys.argv) > 1:
-            dir = sys.argv[1]
-            if dir.startswith('.'):
-                root_path = os.path.join(os.getcwd(), dir.split('/')[-1])
-            else:
-                root_path = os.path.join(os.getcwd(), dir)
-        else:
-            root_path = os.getcwd()
-        traverse(root_path)
-    except:
-        print(f'[!] Error occured!')
+    parser = argparse.ArgumentParser(
+        description='Rename files and directories with disallowed characters.')
+
+    # Optional arguments
+    parser.add_argument('path', type=str, nargs='?',
+                        default='.', help='Path to traverse')
+
+    args = parser.parse_args()
+
+    if args.path:
+        traverse(args.path)
+    else:
+        traverse('.')
 
 
 if __name__ == "__main__":
